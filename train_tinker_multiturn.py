@@ -95,7 +95,7 @@ def main():
                     ).result().sequences[0]
                 except Exception as e:
                     print(e)
-                    continue
+                    break
 
                 generated_text = tokenizer.decode(sample_obj.tokens)
                 # print(generated_text)
