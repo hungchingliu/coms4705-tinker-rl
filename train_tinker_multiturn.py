@@ -44,7 +44,7 @@ def main():
         # Snapshot weights for this batch's sampling
         sampling_client = training_client.save_weights_and_get_sampling_client()
 
-        print(f"\n--- Batch {i//BATCH_SIZE} ---")
+        tqdm.write(f"\n--- Batch {i//BATCH_SIZE} ---")
         
         # Process each example in the batch
         for idx, record in enumerate(batch):
@@ -56,7 +56,7 @@ def main():
             is_valid_gold, _, gold_result = execute_sql(gold_sql, db_id, base_path=DB_ROOT)
 
             if not is_valid_gold:
-                print(f"Skipping {db_id}: Gold SQL failed to execute.")
+                tqdm.write(f"Skipping {db_id}: Gold SQL failed to execute.")
                 continue
 
             # Load Schema
@@ -94,7 +94,7 @@ def main():
                         num_samples=1
                     ).result().sequences[0]
                 except Exception as e:
-                    print(e)
+                    tqdm.write(e)
                     break
 
                 generated_text = tokenizer.decode(sample_obj.tokens)
@@ -153,12 +153,12 @@ def main():
 
                 # D. PREPARE NEXT STEP
                 if turn_success:
-                    print(f"✓ Success on Turn {turn+1}")
+                    tqdm.write(f"✓ Success on Turn {turn+1}")
                     break
                 
                 if should_continue and turn < MAX_TURNS - 1:
                     # Append the model's output + User Error Message to history
-                    print(f"⚠ Error Turn {turn+1}: {last_error_msg[:50]}... Retrying.")
+                    tqdm.write(f"⚠ Error Turn {turn+1}: {last_error_msg[:50]}... Retrying.")
                 else:
                     break
 
@@ -184,18 +184,18 @@ def main():
 
             # Tinker API Calls
             try:
-                print(f"Updating with {len(final_data)} samples. Mean Reward: {rewards.mean():.2f}")
+                tqdm.write(f"Updating with {len(final_data)} samples. Mean Reward: {rewards.mean():.2f}")
                 training_client.forward_backward(final_data, loss_fn="ppo").result()
                 training_client.optim_step(tinker.types.AdamParams(learning_rate=LEARNING_RATE)).result()
                 global_step += 1
             except Exception as e:
-                print(e)
+                tqdm.write(e)
                 continue
 
             if global_step == 1 or global_step%200 == 0:
                 name = NAME + "_" + str(global_step)
                 save_path = training_client.save_weights_for_sampler(name=name).result().path
-                print(save_path)
+                tqdm.write(save_path)
     ### Save
     if global_step == 1 or global_step%200 == 0:
         name = NAME + "_" + str(global_step)
