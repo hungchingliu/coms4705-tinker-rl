@@ -1,10 +1,12 @@
 import os
 import torch
 import tinker
-from tqdm import tqdm
 import json
+from datetime import datetime
+from tqdm import tqdm
 from sql_utils import get_schema, execute_sql, extract_sql_from_response
 from prompt_utils import format_initial_prompt, format_correction_prompt
+
 from tinker import TensorData
 from tinker.types import SamplingParams, ModelInput
 
@@ -15,6 +17,7 @@ MAX_TURNS = 10     # How many times allowed to self-correct
 BATCH_SIZE = 2    # Keep small for multi-turn logic
 LEARNING_RATE = 1e-5
 LOCAL_DATASET_PATH = "./train_8659.json"
+NAME = datetime.now().strftime("%m-%d-%H-%M")
 
 def main():
     # 1. Initialize Tinker
@@ -170,15 +173,14 @@ def main():
             global_step += 1
 
             if global_step == 1 or global_step%200 == 0:
-                save_path = f"./checkpoints/step_{global_step}"
-                print(f"Saving checkpoint to {save_path}...")
-                training_client.save_adapter(save_path)
-
+                name = NAME + "_" + str(global_step)
+                save_path = training_client.save_weights_for_sampler(name=name).result().path
+                print(save_path)
     ### Save
-    save_path = f"./checkpoints/step_{global_step}_final"
-    print(f"Saving checkpoint to {save_path}...")
-    # Tinker client usually exposes a method to download/save the current adapter state
-    training_client.save_adapter(save_path)
+    if global_step == 1 or global_step%200 == 0:
+        name = NAME + "_" + str(global_step)
+        save_path = training_client.save_weights_for_sampler(name=name).result().path
+        print(save_path)
 
 if __name__ == "__main__":
     main()

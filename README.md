@@ -8,7 +8,6 @@ It uses a **Multi-Turn Self-Correction** approach: the model generates SQL, exec
 
 ```text
 .
-├── checkpoints                # Model checkpoint
 ├── train_tinker_multiturn.py  # Main training loop (PPO, Logging, Checkpointing)
 ├── sql_utils.py               # Local execution environment (SQLite execution & Scoring)
 ├── prompt_utils.py            # Prompt templates (Reasoning + SQL XML tags)
