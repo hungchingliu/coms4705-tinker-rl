@@ -87,11 +87,15 @@ def main():
                     stop=["</SQL>", "<|im_end|>"], # Stop exactly after SQL tag
                     return_logprobs=True
                 )
-                sample_obj = sampling_client.sample(
-                    prompt,
-                    sampling_params=params,
-                    num_samples=1
-                ).result().sequences[0]
+                try: 
+                    sample_obj = sampling_client.sample(
+                        prompt,
+                        sampling_params=params,
+                        num_samples=1
+                    ).result().sequences[0]
+                except Exception as e:
+                    print(e)
+                    continue
 
                 generated_text = tokenizer.decode(sample_obj.tokens)
                 # print(generated_text)
@@ -179,10 +183,14 @@ def main():
                 final_data.append(datum)
 
             # Tinker API Calls
-            print(f"Updating with {len(final_data)} samples. Mean Reward: {rewards.mean():.2f}")
-            training_client.forward_backward(final_data, loss_fn="ppo").result()
-            training_client.optim_step(tinker.types.AdamParams(learning_rate=LEARNING_RATE)).result()
-            global_step += 1
+            try:
+                print(f"Updating with {len(final_data)} samples. Mean Reward: {rewards.mean():.2f}")
+                training_client.forward_backward(final_data, loss_fn="ppo").result()
+                training_client.optim_step(tinker.types.AdamParams(learning_rate=LEARNING_RATE)).result()
+                global_step += 1
+            except Exception as e:
+                print(e)
+                continue
 
             if global_step == 1 or global_step%200 == 0:
                 name = NAME + "_" + str(global_step)
