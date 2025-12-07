@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 from tqdm import tqdm
 from sql_utils import get_schema, execute_sql, extract_sql_from_response
-from prompt_utils import format_initial_prompt, format_correction_prompt
+from prompt_utils import format_initial_prompt, format_latest_correction_prompt
 
 from tinker import TensorData
 from tinker.types import SamplingParams, ModelInput
@@ -63,13 +63,24 @@ def main():
             schema = get_schema(db_id, base_path=DB_ROOT)
             
             # Initialize Prompt
-            current_full_text = format_initial_prompt(question, schema)
+            current_prompt = format_initial_prompt(question, schema)
+            last_generated_sql = None
+            last_error_msg = None
             
             # --- MULTI-TURN LOOP ---
             for turn in range(MAX_TURNS):
                 # A. SAMPLE (Remote)
+
+                if turn > 0:
+                    current_prompt = format_latest_correction_prompt(
+                        question, 
+                        schema, 
+                        last_generated_sql, 
+                        last_error_msg
+                    )
+
                 tokenizer = training_client.get_tokenizer()
-                prompt = ModelInput.from_ints(tokenizer.encode(current_full_text))
+                prompt = ModelInput.from_ints(tokenizer.encode(current_prompt))
                 params = SamplingParams(
                     max_tokens=300, 
                     temperature=0.7,
@@ -96,10 +107,13 @@ def main():
                 if pred_sql is None:
                     # Failure: No SQL found
                     reward = -0.8
-                    error_msg = "Could not find valid SQL"
+                    last_generated_sql = generated_text # fallback to generated text if no sql found
+                    last_error_msg = "Could not find valid SQL in response"
                     should_continue = True # Try to ask it to fix format
                 else:
                     success, error_msg, pred_result = execute_sql(pred_sql, db_id, base_path=DB_ROOT)
+                    last_generated_sql = pred_sql
+                    last_error_msg = error_msg
                     
                     if not success:
                         # Failure: Execution Error (Syntax, Table missing, etc)
@@ -140,9 +154,7 @@ def main():
                 
                 if should_continue and turn < MAX_TURNS - 1:
                     # Append the model's output + User Error Message to history
-                    current_full_text += generated_text 
-                    current_full_text = format_correction_prompt(current_full_text, pred_sql, error_msg)
-                    print(f"⚠ Error Turn {turn+1}: {error_msg[:50]}... Retrying.")
+                    print(f"⚠ Error Turn {turn+1}: {last_error_msg[:50]}... Retrying.")
                 else:
                     break
 

@@ -35,21 +35,39 @@ def format_initial_prompt(question, schema):
     # Qwen Chat Format
     return f"<|im_start|>user\n{user_content}<|im_end|>\n<|im_start|>assistant\n"
 
-def format_correction_prompt(previous_history_str, bad_sql, error_msg):
+def format_latest_correction_prompt(question, schema, last_bad_sql, last_error_msg):
     """
-    Appends the error log to the history for the next turn.
-    previous_history_str: The full text generated so far (User Prompt + AI Bad Response)
+    Generates a prompt containing ONLY:
+    1. The Original Question/Schema
+    2. The *Most Recent* Bad SQL (Acting as if it was the immediate previous turn)
+    3. The *Most Recent* Error Message
+    
+    Previous failed turns are discarded to save context window.
     """
-    error_content = f"""
+    # 1. Re-create the base context
+    base_user_content = get_base_prompt_template().format(
+        schema=schema,
+        db_engine="SQLite",
+        question=question
+    )
+    
+    # 2. Format the Error Message
+    error_instruction = f"""
 Previous attempt failed. Here's what happened:
 
 Generated SQL:
 ```sql
-{bad_sql if bad_sql else 'No SQL extracted'}
+{last_bad_sql}
 ```
-Error: {error_msg}
+Error: {last_error_msg}
 
 Please analyze the error and generate a corrected SQL query."""
 
-    # Append the user error message in ChatML format
-    return f"{previous_history_str}\n<|im_start|>user\n{error_content}<|im_end|>\n<|im_start|>assistant\n"
+    full_prompt = (
+        f"<|im_start|>user\n{base_user_content}<|im_end|>\n"
+        f"<|im_start|>assistant\n{last_bad_sql}<|im_end|>\n"
+        f"<|im_start|>user\n{error_instruction}<|im_end|>\n"
+        f"<|im_start|>assistant\n"
+    )
+
+    return full_prompt
