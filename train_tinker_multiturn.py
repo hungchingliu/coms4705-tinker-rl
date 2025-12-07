@@ -1,7 +1,7 @@
 import os
 import torch
 import tinker
-import tqdm
+from tqdm import tqdm
 import json
 from sql_utils import get_schema, execute_sql, extract_sql_from_response
 from prompt_utils import format_initial_prompt, format_correction_prompt
