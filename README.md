@@ -19,7 +19,8 @@ It uses a **Multi-Turn Self-Correction** approach: the model generates SQL, exec
 
 ## Getting Start
 ```bash 
+python -m venv venv
 pip install -r requirements.txt
 export TINKER_API_KEY=tsk_your_key_here
-python train_tinker_multiturn.py
+python train_text_to_sql_pipeline.py 
 ```
