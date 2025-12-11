@@ -15,7 +15,7 @@ from prompt_utils import format_initial_prompt, format_latest_correction_prompt
 
 # --- CONFIGURATION ---
 BASE_MODEL = "Qwen/Qwen3-4B-Instruct-2507"
-MODEL_PATH = "tinker://3d120ec5-a299-566b-ac24-da59050dd8f4:train:0/sampler_weights/final"
+MODEL_PATH = "tinker://c3acc03b-ed8f-5b9e-a8ac-11a79d4cd20b:train:0/weights/spider-run_step_1050"
 DB_ROOT = "./spider_data/test_database"
 EVAL_DATASET_PATH = "./test_2147.json"  # Point to your dev set
 MAX_TURNS = 3     # For Ex@3
